@@ -4,6 +4,7 @@ from pathlib import Path
 import requests
 import gdrive
 from flask import Flask, request, session, redirect, jsonify, send_file, abort, Response
+from werkzeug.security import check_password_hash, generate_password_hash
 
 D = Path('/data'); D.mkdir(exist_ok=True)
 (D / 'files').mkdir(exist_ok=True)
@@ -13,6 +14,7 @@ def secret(name, size=32):
         p.write_text(secrets.token_urlsafe(size)); p.chmod(0o600)
     return p.read_text().strip()
 password=secret('admin-password', 18)
+password_lock=threading.RLock()
 app=Flask(__name__); app.secret_key=secret('session-secret')
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SECURE=True, SESSION_COOKIE_SAMESITE='Lax')
 dbpath=D/'jobs.sqlite3'
@@ -191,8 +193,43 @@ def work(id, link, folder_id=None, mode='debrid', storage='server', visibility='
             else: download(id,result)
     except Exception as e: update(id,status='failed',error=str(e)[:300])
 def is_admin(): return session.get('admin') is True
+def auth_version():
+    return hmac.new(app.secret_key.encode('utf-8'),password.encode('utf-8'),hashlib.sha256).hexdigest()
+def verify_password(candidate):
+    if password.startswith(('scrypt:','pbkdf2:')):
+        try: return check_password_hash(password,candidate)
+        except ValueError: return False
+    return hmac.compare_digest(candidate.encode('utf-8'),password.encode('utf-8'))
+def language(): return 'en' if request.cookies.get('leech_lang')=='en' else 'fa'
+ERROR_EN={
+    'دریافت اطلاعات فضای Google Drive انجام نشد':'Could not retrieve Google Drive storage information.',
+    'حداکثر ۲۰ لینک وارد کنید':'Enter between 1 and 20 links.',
+    'روش دانلود نامعتبر است':'Invalid download type.',
+    'مقصد یا نوع دسترسی نامعتبر است':'Invalid storage destination or visibility.',
+    'ابتدا Google Drive را متصل کنید':'Connect Google Drive first.',
+    'لینک نامعتبر است':'Invalid link.',
+    'پوشه پیدا نشد':'Folder not found.',
+    'حجم فایل مشخص نیست':'The file size is unknown.',
+    'فضای کافی روی سرور وجود ندارد':'Not enough free space on the server.',
+    'آپلود کامل نشد':'The upload did not complete.',
+    'نام پوشه باید بین ۱ تا ۸۰ کاراکتر باشد':'Folder names must be between 1 and 80 characters.',
+    'این پوشه از قبل وجود دارد':'A folder with this name already exists.',
+    'ساخت پوشه در مقصد انجام نشد؛ اتصال و فضای مقصد را بررسی کنید':'Could not create the folder. Check the destination connection and available space.',
+    'ابتدا انتقال‌های فعال این پوشه را کامل کنید':'Wait for active transfers in this folder to finish.',
+    'انتقال فایل‌ها در Google Drive کامل نشد؛ دوباره تلاش کنید':'Could not move files in Google Drive. Please try again.',
+    'انتقال فایل‌های سرور کامل نشد؛ دوباره تلاش کنید':'Could not move server files. Please try again.',
+    'نام پوشه معتبر نیست':'Invalid folder name.',
+    'تغییر نام پوشه در Google Drive انجام نشد':'Could not rename the folder in Google Drive.',
+    'پس از اتمام دانلود می‌توان فایل را جابه‌جا کرد':'Wait for the transfer to finish before moving the file.',
+    'جابجایی در Google Drive انجام نشد':'Could not move the file in Google Drive.',
+    'فایل روی سرور پیدا نشد':'File not found on the server.',
+    'جابجایی فایل روی سرور انجام نشد':'Could not move the file on the server.',
+    'دانلود هنوز فعال است':'The transfer is still active.',
+    'حذف فایل از Google Drive انجام نشد':'Could not delete the file from Google Drive.',
+}
 @app.before_request
 def protect():
+    if session.get('admin') and not hmac.compare_digest(session.get('auth_version',''),auth_version()): session.clear()
     if request.method=='POST' and request.endpoint != 'login':
         valid_origin=request.headers.get('Origin') == 'https://leech.cs2.cat'
         valid_token=bool(session.get('csrf')) and hmac.compare_digest(request.headers.get('X-CSRF-Token',''),session['csrf'])
@@ -200,18 +237,49 @@ def protect():
         if not valid_origin and not valid_token and not valid_logout_token: abort(403)
 @app.after_request
 def headers(r):
+    if language()=='en' and r.is_json:
+        data=r.get_json(silent=True)
+        def translate_error(obj):
+            if isinstance(obj,dict) and isinstance(obj.get('error'),str): obj['error']=ERROR_EN.get(obj['error'],obj['error'])
+        if isinstance(data,list):
+            for item in data: translate_error(item)
+        else: translate_error(data)
+        if data is not None: r.set_data(app.json.dumps(data))
     r.headers['X-Content-Type-Options']='nosniff'; r.headers['Referrer-Policy']='no-referrer'; r.headers['Cache-Control']='no-store'; return r
 @app.route('/login',methods=['GET','POST'])
 def login():
     if request.method=='POST':
-        if hmac.compare_digest(request.form.get('password',''),password): session.clear(); session['admin']=True; return redirect('/')
+        if verify_password(request.form.get('password','')):
+            session.clear(); session['admin']=True; session['auth_version']=auth_version(); return redirect('/')
         time.sleep(1); return redirect('/login?error=1')
-    return Response(Path('/app/login.html').read_text(encoding='utf-8'),mimetype='text/html')
+    return Response(Path('/app/login-'+language()+'.html').read_text(encoding='utf-8'),mimetype='text/html')
 @app.route('/')
 def index():
     if not is_admin(): return redirect('/login')
     token=session.setdefault('csrf',secrets.token_urlsafe(32))
-    return Response(Path('/app/dashboard.html').read_text(encoding='utf-8').replace('__CSRF_TOKEN__',token),mimetype='text/html')
+    return Response(Path('/app/dashboard-'+language()+'.html').read_text(encoding='utf-8').replace('__CSRF_TOKEN__',token),mimetype='text/html')
+@app.route('/api/change-password',methods=['POST'])
+def change_password():
+    global password
+    if not is_admin(): abort(401)
+    data=request.get_json(silent=True) or {}
+    current=data.get('current',''); new=data.get('new',''); confirm=data.get('confirm','')
+    if not all(isinstance(x,str) for x in (current,new,confirm)): return jsonify(error_code='invalid_input'),400
+    if len(new)<12 or len(new)>256: return jsonify(error_code='password_length'),400
+    if new!=new.strip() or any(ord(ch)<32 or ord(ch)==127 for ch in new): return jsonify(error_code='password_whitespace'),400
+    if new!=confirm: return jsonify(error_code='password_mismatch'),400
+    with password_lock:
+        if not verify_password(current): return jsonify(error_code='current_password_wrong'),400
+        if verify_password(new): return jsonify(error_code='password_same'),400
+        target=D/'admin-password'; tmp=D/('admin-password.'+secrets.token_hex(8)+'.tmp')
+        try:
+            password_hash=generate_password_hash(new)
+            with os.fdopen(os.open(tmp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'w',encoding='utf-8') as f: f.write(password_hash)
+            os.replace(tmp,target); password=password_hash
+        finally:
+            tmp.unlink(missing_ok=True)
+        session['auth_version']=auth_version()
+    return jsonify(ok=True)
 @app.route('/connect/google')
 def google_connect():
     if not is_admin(): return redirect('/login')
@@ -434,9 +502,14 @@ def public_host_folder(id):
         folder=c.execute('SELECT name FROM folders WHERE id=?',(id,)).fetchone()
         if not folder: abort(404)
         rows=c.execute("SELECT id,filename,size FROM jobs WHERE folder_id=? AND storage='server' AND status='done' ORDER BY created DESC",(id,)).fetchall()
-    items=''.join('<li><a href="/download/'+html.escape(r['id'],quote=True)+'">'+html.escape(r['filename'] or 'download')+'</a><small>'+str(round(r['size']/1048576,1))+' MB</small></li>' for r in rows) or '<li>این پوشه هنوز فایلی ندارد.</li>'
+    lang=request.args.get('lang') if request.args.get('lang') in ('fa','en') else language()
+    empty='This folder is empty.' if lang=='en' else 'این پوشه هنوز فایلی ندارد.'
+    description='Files in this folder are stored on the server.' if lang=='en' else 'فایل‌های این پوشه روی سرور ذخیره شده‌اند.'
+    switch='<a href="?lang=fa">فارسی</a>' if lang=='en' else '<a href="?lang=en">English</a>'
+    items=''.join('<li><a href="/download/'+html.escape(r['id'],quote=True)+'">'+html.escape(r['filename'] or 'download')+'</a><small>'+str(round(r['size']/1048576,1))+' MB</small></li>' for r in rows) or '<li>'+empty+'</li>'
     name=html.escape(folder['name'])
-    page='''<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'''+name+'''</title><style>body{background:#0b101c;color:#eef2fa;font:15px Tahoma;max-width:760px;margin:70px auto;padding:0 20px}h1{font-size:25px}p,small{color:#a8b6cb}ul{padding:0;list-style:none}li{border:1px solid #2b3950;border-radius:12px;background:#141e2e;padding:18px;margin:10px 0;display:flex;justify-content:space-between;gap:15px}a{color:#c3baff;overflow-wrap:anywhere}small{white-space:nowrap}</style><h1>'''+name+'''</h1><p>فایل‌های این پوشه روی سرور ذخیره شده‌اند.</p><ul>'''+items+'''</ul></html>'''
+    direction='ltr' if lang=='en' else 'rtl'
+    page='''<!doctype html><html lang="'''+lang+'''" dir="'''+direction+'''"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'''+name+'''</title><style>body{background:#0b101c;color:#eef2fa;font:15px Tahoma;max-width:760px;margin:70px auto;padding:0 20px}h1{font-size:25px}p,small{color:#a8b6cb}ul{padding:0;list-style:none}li{border:1px solid #2b3950;border-radius:12px;background:#141e2e;padding:18px;margin:10px 0;display:flex;justify-content:space-between;gap:15px}a{color:#c3baff;overflow-wrap:anywhere}small{white-space:nowrap}</style>'''+switch+'''<h1>'''+name+'''</h1><p>'''+description+'''</p><ul>'''+items+'''</ul></html>'''
     return Response(page,mimetype='text/html')
 @app.route('/logout',methods=['POST'])
 def logout(): session.clear(); return redirect('/login')

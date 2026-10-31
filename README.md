@@ -4,7 +4,7 @@
 
 ## English
 
-LeechBox is a personal file-transfer dashboard for links supported by Real-Debrid, direct links, and uploads from your device. Files can be stored on the server or in Google Drive. The dashboard interface is in Persian.
+LeechBox is a personal file-transfer dashboard for links supported by Real-Debrid, direct links, and uploads from your device. Files can be stored on the server or in Google Drive. The dashboard supports English and Persian and lets the administrator change their password from the panel.
 
 ### Stack
 
@@ -24,6 +24,8 @@ The application currently hard-codes the `leech.cs2.cat` origin and its OAuth ca
 
 The `Public` Drive folder and shared server folders are accessible to anyone with their links. When Google OAuth is in testing mode, the Drive connection may need to be renewed after seven days.
 
+New passwords set through the dashboard are stored as hashes. Existing legacy plaintext passwords remain unchanged until they are updated through the panel. Changing the password signs out older sessions.
+
 ### Sensitive files
 
 Do not commit tokens, passwords, keys, databases, user files, or OAuth credentials. A `.gitignore` is included to reduce the risk of adding them accidentally.
@@ -32,7 +34,7 @@ Do not commit tokens, passwords, keys, databases, user files, or OAuth credentia
 
 ## فارسی
 
-لیچ‌باکس یک پنل شخصی برای دریافت لینک‌های پشتیبانی‌شده توسط Real-Debrid، لینک مستقیم و آپلود از دستگاه است. فایل‌ها می‌توانند روی سرور یا Google Drive ذخیره شوند. رابط کاربری پنل فارسی است.
+لیچ‌باکس یک پنل شخصی برای دریافت لینک‌های پشتیبانی‌شده توسط Real-Debrid، لینک مستقیم و آپلود از دستگاه است. فایل‌ها می‌توانند روی سرور یا Google Drive ذخیره شوند. پنل از زبان‌های فارسی و انگلیسی پشتیبانی می‌کند و مدیر می‌تواند رمز عبور خود را داخل پنل تغییر دهد.
 
 ### اجزا
 
@@ -51,6 +53,8 @@ Do not commit tokens, passwords, keys, databases, user files, or OAuth credentia
 برنامه در حال حاضر دامنه `leech.cs2.cat` و مسیر بازگشت OAuth همان دامنه را در کد مشخص کرده است. برای استفاده از دامنه دیگر باید مبدأ مجاز، مسیر بازگشت OAuth و پیکربندی Caddy را با هم تغییر داد. پیش از استقرار، تنظیمات Caddy را اعتبارسنجی کنید و از پایگاه داده و فایل‌های موجود نسخه پشتیبان بگیرید.
 
 پوشه `Public` در Drive و پوشه‌های اشتراکی روی سرور برای هر کسی که لینک آن‌ها را داشته باشد قابل دسترسی هستند. در حالت آزمایشی Google OAuth، ممکن است لازم باشد اتصال Drive پس از هفت روز دوباره برقرار شود.
+
+رمزهای جدیدی که در پنل تنظیم می‌شوند به‌صورت هش ذخیره می‌شوند؛ رمز قدیمی موجود تا زمان تغییر در پنل به همان شکل قبلی باقی می‌ماند. تغییر رمز، نشست‌های قبلی را از اعتبار خارج می‌کند.
 
 ### فایل‌های حساس
 

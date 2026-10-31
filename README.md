@@ -16,6 +16,8 @@ LeechBox is a personal file-transfer dashboard for links supported by Real-Debri
 
 This repository contains application source code. User files, the database, the administrator password, tokens, and OAuth credentials are not included.
 
+The app uses `dashboard-fa.html`, `dashboard-en.html`, `login-fa.html`, and `login-en.html`. The unsuffixed HTML files are Persian reference copies and are not loaded by the application.
+
 ### Deployment notes
 
 This snapshot was extracted from a custom deployment. `compose.yaml` is an older example and does not, by itself, reproduce the current server setup. The current deployment also requires separate Real-Debrid token and Google OAuth client credential files, persistent storage mounted at `/data`, and a Caddy configuration.
@@ -45,6 +47,8 @@ Do not commit tokens, passwords, keys, databases, user files, or OAuth credentia
 - Google Drive API و Real-Debrid API
 
 این مخزن شامل کد برنامه است؛ فایل‌های کاربران، پایگاه داده، رمز مدیریت، توکن‌ها و اطلاعات OAuth در آن قرار ندارند.
+
+برنامه از فایل‌های `dashboard-fa.html`، `dashboard-en.html`، `login-fa.html` و `login-en.html` استفاده می‌کند. فایل‌های HTML بدون پسوند زبان، نسخه‌های مرجع فارسی هستند و توسط برنامه بارگذاری نمی‌شوند.
 
 ### تنظیمات استقرار
 

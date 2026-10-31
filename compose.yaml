@@ -1,0 +1,11 @@
+services:
+  leech:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18997:5000"
+    volumes:
+      - /opt/leech-panel/data:/data
+      - /opt/leech-panel/rd-token:/run/secrets/rd-token:ro
+    environment:
+      - DATA_DIR=/data

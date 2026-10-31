@@ -1,0 +1,18 @@
+# Example for the current architecture; replace the hostname and review paths.
+leech.example.com {
+    handle /download/* {
+        route {
+            forward_auth 127.0.0.1:18998 {
+                uri /api/authorize-download
+                copy_headers X-Download-Disposition X-Download-Path
+            }
+            rewrite * {http.request.header.X-Download-Path}
+            root * /opt/leech-panel/data/files
+            header Content-Disposition "{http.request.header.X-Download-Disposition}"
+            file_server
+        }
+    }
+    handle {
+        reverse_proxy 127.0.0.1:18998
+    }
+}

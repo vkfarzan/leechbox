@@ -1,0 +1,24 @@
+# Secrets and runtime state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*token*
+*secret*
+*password*
+client_secret*.json
+credentials*.json
+data/
+files/
+*.sqlite
+*.sqlite3
+*.db
+*.part
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store

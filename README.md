@@ -1,25 +1,57 @@
 # LeechBox
 
-پنل شخصی برای دریافت لینک‌های پشتیبانی‌شده توسط Real-Debrid، لینک مستقیم و آپلود از دستگاه. فایل‌ها می‌توانند روی سرور یا Google Drive ذخیره شوند. رابط کاربری فارسی است.
+[English](#english) | [فارسی](#فارسی)
 
-## اجزا
+## English
 
-- Python / Flask، همراه با Gunicorn
+LeechBox is a personal file-transfer dashboard for links supported by Real-Debrid, direct links, and uploads from your device. Files can be stored on the server or in Google Drive. The dashboard interface is in Persian.
+
+### Stack
+
+- Python and Flask, served with Gunicorn
+- HTML, CSS, and JavaScript for the interface
+- SQLite for transfer status and folder information
+- Docker and Caddy for running the application and serving files
+- Google Drive API and Real-Debrid API
+
+This repository contains application source code. User files, the database, the administrator password, tokens, and OAuth credentials are not included.
+
+### Deployment notes
+
+This snapshot was extracted from a custom deployment. `compose.yaml` is an older example and does not, by itself, reproduce the current server setup. The current deployment also requires separate Real-Debrid token and Google OAuth client credential files, persistent storage mounted at `/data`, and a Caddy configuration.
+
+The application currently hard-codes the `leech.cs2.cat` origin and its OAuth callback. To use another domain, update the allowed origin, OAuth callback, and Caddy configuration together. Validate the Caddy configuration and back up the existing database and files before deployment.
+
+The `Public` Drive folder and shared server folders are accessible to anyone with their links. When Google OAuth is in testing mode, the Drive connection may need to be renewed after seven days.
+
+### Sensitive files
+
+Do not commit tokens, passwords, keys, databases, user files, or OAuth credentials. A `.gitignore` is included to reduce the risk of adding them accidentally.
+
+---
+
+## فارسی
+
+لیچ‌باکس یک پنل شخصی برای دریافت لینک‌های پشتیبانی‌شده توسط Real-Debrid، لینک مستقیم و آپلود از دستگاه است. فایل‌ها می‌توانند روی سرور یا Google Drive ذخیره شوند. رابط کاربری پنل فارسی است.
+
+### اجزا
+
+- Python و Flask همراه با Gunicorn
 - HTML، CSS و JavaScript برای رابط کاربری
 - SQLite برای وضعیت انتقال‌ها و پوشه‌ها
 - Docker و Caddy برای اجرای پنل و ارائه فایل‌ها
 - Google Drive API و Real-Debrid API
 
-این مخزن کد برنامه را شامل می‌شود؛ فایل‌ها، پایگاه داده، رمز مدیریت، توکن‌ها و اطلاعات OAuth در آن قرار ندارند.
+این مخزن شامل کد برنامه است؛ فایل‌های کاربران، پایگاه داده، رمز مدیریت، توکن‌ها و اطلاعات OAuth در آن قرار ندارند.
 
-## تنظیمات استقرار
+### تنظیمات استقرار
 
-این نسخه از نصب اختصاصی در حال اجرای پروژه استخراج شده است. `compose.yaml` یک نمونه قدیمی است و به‌تنهایی تنظیمات کامل نصب فعلی را بازسازی نمی‌کند. استقرار فعلی همچنین به فایل‌های جداگانه توکن Real-Debrid و شناسه و رمز محرمانه OAuth گوگل، یک مسیر ماندگار برای `/data` و تنظیمات Caddy نیاز دارد.
+این نسخه از یک نصب اختصاصی استخراج شده است. `compose.yaml` یک نمونه قدیمی است و به‌تنهایی تنظیمات کامل نصب فعلی را بازسازی نمی‌کند. استقرار فعلی همچنین به فایل‌های جداگانه توکن Real-Debrid و شناسه و رمز محرمانه OAuth گوگل، فضای ماندگار برای `/data` و تنظیمات Caddy نیاز دارد.
 
-برنامه در حال حاضر دامنه `leech.cs2.cat` و مسیر بازگشت OAuth همان دامنه را در کد مشخص کرده است. برای اجرای آن روی دامنه دیگر باید آدرس‌های مبدأ و بازگشت OAuth و پیکربندی Caddy به‌طور هماهنگ تغییر کنند. قبل از استقرار، تنظیمات Caddy را اعتبارسنجی کنید و از پایگاه داده و فایل‌های موجود نسخه پشتیبان بگیرید.
+برنامه در حال حاضر دامنه `leech.cs2.cat` و مسیر بازگشت OAuth همان دامنه را در کد مشخص کرده است. برای استفاده از دامنه دیگر باید مبدأ مجاز، مسیر بازگشت OAuth و پیکربندی Caddy را با هم تغییر داد. پیش از استقرار، تنظیمات Caddy را اعتبارسنجی کنید و از پایگاه داده و فایل‌های موجود نسخه پشتیبان بگیرید.
 
-پوشه `Public` در Drive و پوشه‌های اشتراکی روی سرور با لینک در دسترس دیگران قرار می‌گیرند. فایل‌های Drive در حالت آزمایشی OAuth ممکن است پس از هفت روز به اتصال مجدد نیاز داشته باشند.
+پوشه `Public` در Drive و پوشه‌های اشتراکی روی سرور برای هر کسی که لینک آن‌ها را داشته باشد قابل دسترسی هستند. در حالت آزمایشی Google OAuth، ممکن است لازم باشد اتصال Drive پس از هفت روز دوباره برقرار شود.
 
-## نکته درباره فایل‌های حساس
+### فایل‌های حساس
 
-فایل‌های توکن، رمز عبور، کلیدها، پایگاه داده، فایل‌های کاربران و اعتبارنامه‌های OAuth را به مخزن اضافه نکنید. `.gitignore` برای کاهش خطر اضافه‌شدن ناخواسته این فایل‌ها قرار داده شده است.
+توکن‌ها، رمزها، کلیدها، پایگاه‌های داده، فایل‌های کاربران و اعتبارنامه‌های OAuth را به مخزن اضافه نکنید. فایل `.gitignore` برای کاهش خطر اضافه‌شدن ناخواسته آن‌ها قرار داده شده است.
